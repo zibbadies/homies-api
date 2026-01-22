@@ -50,10 +50,32 @@ func homeOverview(c *gin.Context) {
 		return
 	}
 
+	lists, err := db.GetLists(user.HouseId)
+	if (err != nil) {
+		c.JSON(400, gin.H{"error": err})
+		return
+	}
+
+	d_lists := make(map[string][]models.Item)
+
+	for _, list := range lists {
+		/* 
+			TODO: Replace this if with the DB in_overview field
+		*/
+		if (list.Name == "todo" || list.Name == "shopping") {
+			d_lists[list.Name], err = db.GetItems(list.Id)
+
+			if (err != nil) {
+				c.JSON(400, gin.H{"error": err})
+				return
+			}
+		}
+	}
+
 	overview := models.Overview{
 		User: user.User,
 		House: house,
-		Items: make([]models.Item, 0),
+		Lists: d_lists,
 	}
 
 	c.JSON(200, overview);

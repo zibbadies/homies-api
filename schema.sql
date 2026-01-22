@@ -22,7 +22,8 @@ CREATE TABLE users (
   left_eye_y FLOAT NOT NULL,
   right_eye_x FLOAT NOT NULL,
   right_eye_y FLOAT NOT NULL,
-  bezier CHAR(11) NOT NULL
+  bezier CHAR(11) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 );
 
 CREATE TABLE lists (
@@ -30,6 +31,7 @@ CREATE TABLE lists (
   house_id INTEGER NOT NULL,
   name VARCHAR(256) NOT NULL,
   items INT NOT NULL DEFAULT 0
+  in_overview BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TABLE todos (
@@ -37,7 +39,8 @@ CREATE TABLE todos (
   list_id SERIAL NOT NULL,
   completed BOOLEAN NOT NULL DEFAULT false,
   text VARCHAR(512) NOT NULL,
-  author UUID NOT NULL
+  author UUID NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 );
 
 CREATE UNIQUE INDEX invite_index ON houses (invite);

@@ -98,11 +98,6 @@ func GetItemsEx(exec Execer, listId string) ([]models.Item, error) {
 		}
 		item.Id = strconv.FormatInt(iid, 10);
 
-		if (err != nil) {
-			logger.Logger.Error("list UUIDBytes2String error", "err", err.Error(), "listId", listId)
-			return nil, err
-		}
-
 		items = append(items, item)
 	}
 
