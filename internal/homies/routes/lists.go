@@ -28,7 +28,7 @@ func getLists(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"items": lists,
+		"lists": lists,
 	});
 }
 
