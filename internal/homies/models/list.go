@@ -1,6 +1,10 @@
 package models
 
+import "time"
+
 //import "time"
+
+var NoTime = time.Time{}
 
 type List struct {
 	Name string `json:"name"`

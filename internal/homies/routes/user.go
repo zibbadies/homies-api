@@ -63,7 +63,7 @@ func homeOverview(c *gin.Context) {
 			TODO: Replace this if with the DB in_overview field
 		*/
 		if (list.Name == "todo" || list.Name == "shopping") {
-			d_lists[list.Name], err = db.GetItems(list.Id)
+			d_lists[list.Name], err = db.GetItems(list.Id, models.NoTime, models.NoTime, 10)
 
 			if (err != nil) {
 				c.JSON(400, gin.H{"error": err})

@@ -1,13 +1,16 @@
 package execers
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/zibbadies/homies/internal/homies/logger"
 	"github.com/zibbadies/homies/internal/homies/models"
 
 	"strconv"
 )
 
-func NewListEx(exec Execer, houseId string, name string) error {
+func NewListEx(exec Execer, houseId string, name string, inOverview bool) error {
 	houseIdInt, err := strconv.Atoi(houseId)
 	if (err != nil) {
 		logger.Logger.Error("list ID atoi error", "err", err.Error(), "houseId", houseId)
@@ -15,9 +18,9 @@ func NewListEx(exec Execer, houseId string, name string) error {
 	}
 
 	_, err = exec.Exec(`
-		INSERT INTO lists (house_id, name)
-		VALUES ($1, $2)`,
-		houseIdInt, name,
+		INSERT INTO lists (house_id, name, in_overview)
+		VALUES ($1, $2, $3)`,
+		houseIdInt, name, inOverview,
 	)
 	if err != nil {return err;}
 
@@ -72,14 +75,45 @@ func GetListHIDEx(exec Execer, listId string) (string, error) {
 	return strconv.FormatInt(houseId, 10), nil;
 }
 
-func GetItemsEx(exec Execer, listId string) ([]models.Item, error) {
+func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, limit int) ([]models.Item, error) {
 	b_id, err := strconv.Atoi(listId)
 	if (err != nil) { 
 		logger.Logger.Error("list ID atoi error", "err", err.Error(), "listId", listId)
 		return nil, err
 	}
 
-	rows, err := exec.Query(`SELECT id, text, completed, author FROM todos WHERE list_id = $1`, b_id);
+	// NOTE: ORDER BY created_at isn't necessary, maybe make it optional using function arguments?
+
+	args := []any{b_id}
+	argsNum := 2
+
+	query := `
+		SELECT id, text, completed, author, created_at
+		FROM todos
+		WHERE list_id = $1
+	`
+
+	if !from.IsZero() {
+		query += fmt.Sprintf(" AND created_at >= $%d", argsNum)
+		args = append(args, from.UTC())
+		argsNum++
+	}
+
+	if !to.IsZero() {
+		query += fmt.Sprintf(" AND created_at <= $%d", argsNum)
+		args = append(args, to.UTC())
+		argsNum++
+	}
+
+	query += ` ORDER BY created_at`
+
+	if limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argsNum)
+		args = append(args, limit)
+		argsNum++
+	}
+
+	rows, err := exec.Query(query, args...)
 	defer rows.Close()
 
 	if err != nil {
@@ -91,11 +125,14 @@ func GetItemsEx(exec Execer, listId string) ([]models.Item, error) {
 	for rows.Next() {
 		var item models.Item;
 		var iid int64;
+		var createdAt time.Time; // TODO: implement this in &item.
 
-		if err := rows.Scan(&iid, &item.Text, &item.Completed, &item.Author); err != nil {
+		if err := rows.Scan(&iid, &item.Text, &item.Completed, &item.Author, &createdAt); err != nil {
 			logger.Logger.Error("list row scan error", "err", err.Error(), "listId", listId)
 			return nil, err
 		}
+
+		fmt.Println(createdAt)
 		item.Id = strconv.FormatInt(iid, 10);
 
 		items = append(items, item)

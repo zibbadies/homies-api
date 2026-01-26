@@ -1,16 +1,18 @@
 package db
 
 import (
-	"github.com/lib/pq"
 	"database/sql"
+	"time"
+
+	"github.com/lib/pq"
 
 	"github.com/zibbadies/homies/internal/homies/db/execers"
-	"github.com/zibbadies/homies/internal/homies/models"
 	"github.com/zibbadies/homies/internal/homies/logger"
+	"github.com/zibbadies/homies/internal/homies/models"
 )
 
-func NewList(houseId string, name string) error {
-	err := execers.NewListEx(db, houseId, name)
+func NewList(houseId string, name string, inOverview bool) error {
+	err := execers.NewListEx(db, houseId, name, inOverview)
 	if err == nil {
 		return nil
 	}
@@ -70,8 +72,8 @@ func GetListHID(listId string) (string, error) {
 	}
 }
 
-func GetItems(listId string) ([]models.Item, error) {
-	items, err := execers.GetItemsEx(db, listId)
+func GetItems(listId string, from time.Time, to time.Time, limit int) ([]models.Item, error) {
+	items, err := execers.GetItemsEx(db, listId, from, to, limit)
 	if err == nil {
 		return items, nil
 	}
