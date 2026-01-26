@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -132,7 +133,21 @@ func getItems(c *gin.Context) {
 
 	// TODO: Finish time filtering
 
-	items, err := db.GetItems(id_param, models.NoTime, models.NoTime, filter.Limit)
+	fromt, err := time.Parse(time.RFC3339, filter.From)
+	if err != nil {
+		fmt.Println(err)
+		fromt = models.NoTime
+	}
+
+	tot, err := time.Parse(time.RFC3339, filter.To)
+	if err != nil {
+		fmt.Println(err)
+		tot = models.NoTime
+	}
+
+	fmt.Println("TIME FILTERING: ", fromt, tot)
+
+	items, err := db.GetItems(id_param, fromt, tot, filter.Limit)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err})
 		return

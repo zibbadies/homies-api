@@ -94,7 +94,7 @@ func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, limit 
 	`
 
 	if !from.IsZero() {
-		query += fmt.Sprintf(" AND created_at >= $%d", argsNum)
+		query += fmt.Sprintf(" AND created_at > $%d", argsNum)
 		args = append(args, from.UTC())
 		argsNum++
 	}
