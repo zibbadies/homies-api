@@ -127,7 +127,7 @@ func getItems(c *gin.Context) {
 
 	fmt.Println(filter)
 
-	if filter.Limit > 50 {
+	if filter.Limit > 50 || filter.Limit == 0 {
 		filter.Limit = 50
 	}
 
