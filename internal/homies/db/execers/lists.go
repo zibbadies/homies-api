@@ -94,13 +94,13 @@ func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, limit 
 	`
 
 	if !from.IsZero() {
-		query += fmt.Sprintf(" AND created_at > $%d", argsNum)
+		query += fmt.Sprintf(" AND created_at >= $%d", argsNum)
 		args = append(args, from.UTC())
 		argsNum++
 	}
 
 	if !to.IsZero() {
-		query += fmt.Sprintf(" AND created_at <= $%d", argsNum)
+		query += fmt.Sprintf(" AND created_at < $%d", argsNum)
 		args = append(args, to.UTC())
 		argsNum++
 	}
@@ -125,14 +125,12 @@ func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, limit 
 	for rows.Next() {
 		var item models.Item;
 		var iid int64;
-		var createdAt time.Time; // TODO: implement this in &item.
 
-		if err := rows.Scan(&iid, &item.Text, &item.Completed, &item.Author, &createdAt); err != nil {
+		if err := rows.Scan(&iid, &item.Text, &item.Completed, &item.Author, &item.CreatedAt); err != nil {
 			logger.Logger.Error("list row scan error", "err", err.Error(), "listId", listId)
 			return nil, err
 		}
 
-		fmt.Println(createdAt)
 		item.Id = strconv.FormatInt(iid, 10);
 
 		items = append(items, item)
