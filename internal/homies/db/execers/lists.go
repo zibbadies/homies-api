@@ -105,7 +105,7 @@ func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, limit 
 		argsNum++
 	}
 
-	query += ` ORDER BY created_at`
+	query += ` ORDER BY created_at DESC`
 
 	if limit > 0 {
 		query += fmt.Sprintf(" LIMIT $%d", argsNum)
