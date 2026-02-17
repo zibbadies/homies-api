@@ -125,3 +125,39 @@ func UpdateItem(listId string, itemId string, text string, authorId string) erro
 		ErrorCode: models.InternalError,
 	}
 }
+
+func SetItemCompleted(listId string, itemId string, completed bool) error {
+	err := execers.SetItemCompletedEx(db, listId, itemId, completed)
+	if err == nil {
+		return nil
+	}
+
+	if pqErr, ok := err.(*pq.Error); ok {
+		logger.Logger.Error("item update completed error", "err", err.Error(), "sql_err", pqErr.Code)
+	} else {
+		logger.Logger.Error("item update completed error", "err", err.Error())
+	}
+
+	return &models.DBError{
+		Message:   "General error, please try again later!",
+		ErrorCode: models.InternalError,
+	}
+}
+
+func DeleteItem(listId string, itemId string) error {
+	err := execers.DeleteItemEx(db, listId, itemId)
+	if err == nil {
+		return nil
+	}
+
+	if pqErr, ok := err.(*pq.Error); ok {
+		logger.Logger.Error("item delete error", "err", err.Error(), "sql_err", pqErr.Code)
+	} else {
+		logger.Logger.Error("item delete error", "err", err.Error())
+	}
+
+	return &models.DBError{
+		Message:   "General error, please try again later!",
+		ErrorCode: models.InternalError,
+	}
+}

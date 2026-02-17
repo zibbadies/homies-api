@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/zibbadies/homies/internal/homies/config"
 	_ "github.com/lib/pq"
@@ -21,6 +22,11 @@ func ConnectDatabase() error {
 	if (err != nil) {
 		return err;
 	}
+
+    db.SetMaxOpenConns(25)
+    db.SetMaxIdleConns(10)
+    db.SetConnMaxLifetime(5 * time.Minute)
+    db.SetConnMaxIdleTime(10 * time.Minute)
 
 	err = db.Ping()
 	if (err != nil) {

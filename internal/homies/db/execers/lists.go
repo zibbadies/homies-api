@@ -191,3 +191,46 @@ func UpdateItemEx(exec Execer, listId string, itemId string, text string, author
 	return nil
 }
 
+func SetItemCompletedEx(exec Execer, listId string, itemId string, completed bool) error {
+	i_id, err := strconv.Atoi(itemId)
+	if err != nil {
+		logger.Logger.Error("list item ID atoi error", "err", err.Error(), "listId", itemId)
+		return err
+	}
+
+	l_id, err := strconv.Atoi(listId)
+	if err != nil {
+		logger.Logger.Error("list ID atoi error", "err", err.Error(), "listId", listId)
+		return err
+	}
+
+	_, err = exec.Exec(`UPDATE todos SET completed = $1 WHERE (id = $2 AND list_id = $3)`, completed, i_id, l_id)
+	if err != nil {
+		logger.Logger.Error("list item update error", "err", err.Error(), "itemId", itemId)
+		return err
+	}
+
+	return nil
+}
+
+func DeleteItemEx(exec Execer, listId string, itemId string) error {
+	i_id, err := strconv.Atoi(itemId)
+	if err != nil {
+		logger.Logger.Error("list item ID atoi error", "err", err.Error(), "listId", itemId)
+		return err
+	}
+
+	l_id, err := strconv.Atoi(listId)
+	if err != nil {
+		logger.Logger.Error("list ID atoi error", "err", err.Error(), "listId", listId)
+		return err
+	}
+
+	_, err = exec.Exec(`DELETE FROM todos WHERE (id = $1 AND list_id = $2)`, i_id, l_id)
+	if err != nil {
+		logger.Logger.Error("list item update error", "err", err.Error(), "itemId", itemId)
+		return err
+	}
+
+	return nil
+}

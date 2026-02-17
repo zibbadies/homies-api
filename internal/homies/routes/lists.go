@@ -12,7 +12,8 @@ import (
 )
 
 type ItemInput struct {
-	Text string `json:"text"`
+	Text      string `json:"text"`
+	Completed bool   `json:"completed"`
 }
 
 type ItemsFilter struct {
@@ -171,11 +172,62 @@ func updateItem(c *gin.Context) {
 		return
 	}
 
-	err = checks.Check("list_item_text", item.Text)
+	/*
+		Checks:
+		- List ID in user's house (list_hid == user_hid)
+		- Item ID in list (item_lid == list_id) ( db side? )
+	*/
+
+	dbuser, err := db.GetUserMe(jwtdata.(jwt.MapClaims)["uid"].(string))
 	if err != nil {
 		c.JSON(400, gin.H{"error": err})
 		return
 	}
+
+	list_hid, err := db.GetListHID(list_id)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err})
+		return
+	}
+
+	if dbuser.HouseId != list_hid {
+		c.JSON(403, gin.H{"error": models.DBError{
+			Message:   "You can't access this list!",
+			ErrorCode: models.NotAuthorized,
+		}})
+		return
+	}
+
+	fmt.Println("--------")
+	fmt.Println(item)
+
+	if (item.Text == "") {
+		err = db.SetItemCompleted(list_id, item_id, item.Completed)
+		if err != nil {
+			c.JSON(400, gin.H{"error": err})
+			return
+		}
+	} else {
+		err = checks.Check("list_item_text", item.Text)
+		if err != nil {
+			c.JSON(400, gin.H{"error": err})
+			return
+		}
+
+		err = db.UpdateItem(list_id, item_id, item.Text, jwtdata.(jwt.MapClaims)["uid"].(string))
+		if err != nil {
+			c.JSON(400, gin.H{"error": err})
+			return
+		}
+	}
+
+	c.JSON(200, gin.H{})
+}
+
+func deleteItem(c *gin.Context) {
+	jwtdata, _ := c.Get("data")
+	list_id := c.Param("id")
+	item_id := c.Param("item_id")
 
 	/*
 		Checks:
@@ -203,7 +255,7 @@ func updateItem(c *gin.Context) {
 		return
 	}
 
-	err = db.UpdateItem(list_id, item_id, item.Text, jwtdata.(jwt.MapClaims)["uid"].(string))
+	err = db.DeleteItem(list_id, item_id)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err})
 		return
