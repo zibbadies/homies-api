@@ -114,6 +114,13 @@ func UpdateItem(listId string, itemId string, text string, authorId string) erro
 		return nil
 	}
 
+	if err == sql.ErrNoRows {
+		return &models.DBError{
+			Message: "Item not found!",
+			ErrorCode: models.ItemNotFound,
+		}
+	}
+
 	if pqErr, ok := err.(*pq.Error); ok {
 		logger.Logger.Error("item update error", "err", err.Error(), "sql_err", pqErr.Code)
 	} else {
