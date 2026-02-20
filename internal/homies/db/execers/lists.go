@@ -158,21 +158,16 @@ func NewItemEx(exec Execer, text string, listId string, authorId string) (error,
 		return err, ""
 	}
 
-	r, err := exec.Exec(`
+	var item_id string;
+	err = exec.QueryRow(`
 		INSERT INTO todos (text, list_id, author)
-		VALUES ($1, $2, $3)`, text, l_id, authorId)
+		VALUES ($1, $2, $3) RETURNING id`, text, l_id, authorId).Scan(&item_id)
 	if err != nil {
 		logger.Logger.Error("list insert error", "err", err.Error(), "listId", listId)
 		return err, ""
 	}
 
-	id, err := r.LastInsertId()
-	if err != nil {
-		logger.Logger.Error("list insert error", "err", err.Error(), "listId", listId)
-		return err, ""
-	}
-
-	return nil, strconv.FormatInt(id, 10)
+	return nil, item_id
 }
 
 func UpdateItemEx(exec Execer, listId string, itemId string, text string, authorId string) error {
