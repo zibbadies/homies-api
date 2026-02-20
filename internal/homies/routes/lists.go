@@ -83,13 +83,13 @@ func newItem(c *gin.Context) {
 		return
 	}
 
-	err = db.NewItem(item.Text, list_id, jwtdata.(jwt.MapClaims)["uid"].(string))
+	err, id := db.NewItem(item.Text, list_id, jwtdata.(jwt.MapClaims)["uid"].(string))
 	if err != nil {
 		c.JSON(400, gin.H{"error": err})
 		return
 	}
 
-	c.JSON(200, gin.H{})
+	c.JSON(200, gin.H{"id": id})
 }
 
 func getItems(c *gin.Context) {

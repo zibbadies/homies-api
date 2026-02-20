@@ -90,10 +90,10 @@ func GetItems(listId string, from time.Time, to time.Time, limit int) ([]models.
 	}
 }
 
-func NewItem(text string, listId string, authorId string) error {
-	err := execers.NewItemEx(db, text, listId, authorId)
+func NewItem(text string, listId string, authorId string) (error, string) {
+	err, id := execers.NewItemEx(db, text, listId, authorId)
 	if err == nil {
-		return nil
+		return nil, id
 	}
 
 	if pqErr, ok := err.(*pq.Error); ok {
@@ -105,7 +105,7 @@ func NewItem(text string, listId string, authorId string) error {
 	return &models.DBError{
 		Message:   "General error, please try again later!",
 		ErrorCode: models.InternalError,
-	}
+	}, ""
 }
 
 func UpdateItem(listId string, itemId string, text string, authorId string) error {

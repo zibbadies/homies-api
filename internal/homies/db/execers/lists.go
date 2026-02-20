@@ -145,28 +145,34 @@ func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, limit 
 }
 
 
-func NewItemEx(exec Execer, text string, listId string, authorId string) error {
+func NewItemEx(exec Execer, text string, listId string, authorId string) (error, string) {
 	l_id, err := strconv.Atoi(listId)
 	if err != nil {
 		logger.Logger.Error("list ID atoi error", "err", err.Error(), "listId", listId)
-		return err
+		return err, ""
 	}
 
 	_, err = exec.Exec(`UPDATE lists SET items = items + 1 WHERE id = $1`, l_id)
 	if err != nil {
 		logger.Logger.Error("list update error", "err", err.Error(), "authorId", authorId)
-		return err
+		return err, ""
 	}
 
-	_, err = exec.Exec(`
+	r, err := exec.Exec(`
 		INSERT INTO todos (text, list_id, author)
 		VALUES ($1, $2, $3)`, text, l_id, authorId)
 	if err != nil {
 		logger.Logger.Error("list insert error", "err", err.Error(), "listId", listId)
-		return err
+		return err, ""
 	}
 
-	return nil
+	id, err := r.LastInsertId()
+	if err != nil {
+		logger.Logger.Error("list insert error", "err", err.Error(), "listId", listId)
+		return err, ""
+	}
+
+	return nil, strconv.FormatInt(id, 10)
 }
 
 func UpdateItemEx(exec Execer, listId string, itemId string, text string, authorId string) error {
