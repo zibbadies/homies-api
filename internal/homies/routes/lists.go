@@ -12,8 +12,9 @@ import (
 )
 
 type ItemInput struct {
-	Text      string `json:"text"`
-	Completed bool   `json:"completed"`
+	Text      string    `json:"text"`
+	Completed bool      `json:"completed"`
+	DueDate   time.Time `json:"due_date"`
 }
 
 type ItemsFilter struct {
@@ -83,7 +84,7 @@ func newItem(c *gin.Context) {
 		return
 	}
 
-	err, id := db.NewItem(item.Text, list_id, jwtdata.(jwt.MapClaims)["uid"].(string))
+	id, err := db.NewItem(item.Text, list_id, jwtdata.(jwt.MapClaims)["uid"].(string), item.DueDate.UTC())
 	if err != nil {
 		c.JSON(400, gin.H{"error": err})
 		return
@@ -198,10 +199,7 @@ func updateItem(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("--------")
-	fmt.Println(item)
-
-	if (item.Text == "") {
+	if item.Text == "" {
 		err = db.SetItemCompleted(list_id, item_id, item.Completed)
 		if err != nil {
 			c.JSON(400, gin.H{"error": err})
