@@ -90,8 +90,8 @@ func GetItems(listId string, from time.Time, to time.Time, limit int) ([]models.
 	}
 }
 
-func NewItem(text string, listId string, authorId string) (error, string) {
-	err, id := execers.NewItemEx(db, text, listId, authorId)
+func NewItem(text string, listId string, authorId string, dueAt *time.Time) (error, string) {
+	err, id := execers.NewItemEx(db, text, listId, authorId, dueAt)
 	if err == nil {
 		return nil, id
 	}
@@ -108,8 +108,8 @@ func NewItem(text string, listId string, authorId string) (error, string) {
 	}, ""
 }
 
-func UpdateItem(listId string, itemId string, text string, authorId string) error {
-	err := execers.UpdateItemEx(db, listId, itemId, text, authorId)
+func UpdateItem(listId string, itemId string, text string, authorId string, touchDue bool, dueAt *time.Time) error {
+	err := execers.UpdateItemEx(db, listId, itemId, text, authorId, touchDue, dueAt)
 	if err == nil {
 		return nil
 	}
@@ -143,6 +143,24 @@ func SetItemCompleted(listId string, itemId string, completed bool) error {
 		logger.Logger.Error("item update completed error", "err", err.Error(), "sql_err", pqErr.Code)
 	} else {
 		logger.Logger.Error("item update completed error", "err", err.Error())
+	}
+
+	return &models.DBError{
+		Message:   "General error, please try again later!",
+		ErrorCode: models.InternalError,
+	}
+}
+
+func SetItemDue(listId string, itemId string, dueAt *time.Time) error {
+	err := execers.SetItemDueEx(db, listId, itemId, dueAt)
+	if err == nil {
+		return nil
+	}
+
+	if pqErr, ok := err.(*pq.Error); ok {
+		logger.Logger.Error("item update due error", "err", err.Error(), "sql_err", pqErr.Code)
+	} else {
+		logger.Logger.Error("item update due error", "err", err.Error())
 	}
 
 	return &models.DBError{

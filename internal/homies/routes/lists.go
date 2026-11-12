@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,14 +14,53 @@ import (
 )
 
 type ItemInput struct {
-	Text      string `json:"text"`
-	Completed bool   `json:"completed"`
+	Text      string          `json:"text"`
+	Completed bool            `json:"completed"`
+	DueAt     json.RawMessage `json:"due_at"`
 }
 
 type ItemsFilter struct {
 	Limit int    `form:"limit"`
 	From  string `form:"from"`
 	To    string `form:"to"`
+}
+
+// Parses the optional "due_at" field of an ItemInput.
+// Returns (touchDue, dueAt, err):
+//   - field absent  -> (false, nil, nil)   : leave the stored value untouched
+//   - field null    -> (true, nil, nil)    : clear the due date
+//   - field present -> (true, &time, nil)  : set the due date (RFC3339)
+func parseDueAt(raw json.RawMessage) (bool, *time.Time, error) {
+	if raw == nil {
+		return false, nil, nil
+	}
+
+	if strings.TrimSpace(string(raw)) == "null" {
+		return true, nil, nil
+	}
+
+	var dueStr string;
+	if err := json.Unmarshal(raw, &dueStr); err != nil {
+		return false, nil, &models.CheckError{
+			Message:   "Your due date must be an RFC3339 string (e.g. 2026-11-15T18:00:00Z) or null!",
+			ErrorCode: models.BasicCheckError,
+		}
+	}
+
+	if err := checks.Check("list_item_due", dueStr); err != nil {
+		return false, nil, err
+	}
+
+	due, err := time.Parse(time.RFC3339, dueStr)
+	if err != nil {
+		return false, nil, &models.CheckError{
+			Message:   "Your due date is not a valid RFC3339 timestamp!",
+			ErrorCode: models.BasicCheckError,
+		}
+	}
+
+	due = due.UTC()
+	return true, &due, nil
 }
 
 func getLists(c *gin.Context) {
@@ -61,6 +102,12 @@ func newItem(c *gin.Context) {
 		return
 	}
 
+	_, dueAt, err := parseDueAt(item.DueAt)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err})
+		return
+	}
+
 	list_id := c.Param("id")
 
 	list_hid, err := db.GetListHID(list_id)
@@ -83,7 +130,7 @@ func newItem(c *gin.Context) {
 		return
 	}
 
-	err, id := db.NewItem(item.Text, list_id, jwtdata.(jwt.MapClaims)["uid"].(string))
+	err, id := db.NewItem(item.Text, list_id, jwtdata.(jwt.MapClaims)["uid"].(string), dueAt)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err})
 		return
@@ -172,6 +219,12 @@ func updateItem(c *gin.Context) {
 		return
 	}
 
+	touchDue, dueAt, err := parseDueAt(item.DueAt)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err})
+		return
+	}
+
 	/*
 		Checks:
 		- List ID in user's house (list_hid == user_hid)
@@ -207,6 +260,14 @@ func updateItem(c *gin.Context) {
 			c.JSON(400, gin.H{"error": err})
 			return
 		}
+
+		if (touchDue) {
+			err = db.SetItemDue(list_id, item_id, dueAt)
+			if err != nil {
+				c.JSON(400, gin.H{"error": err})
+				return
+			}
+		}
 	} else {
 		err = checks.Check("list_item_text", item.Text)
 		if err != nil {
@@ -214,7 +275,7 @@ func updateItem(c *gin.Context) {
 			return
 		}
 
-		err = db.UpdateItem(list_id, item_id, item.Text, jwtdata.(jwt.MapClaims)["uid"].(string))
+		err = db.UpdateItem(list_id, item_id, item.Text, jwtdata.(jwt.MapClaims)["uid"].(string), touchDue, dueAt)
 		if err != nil {
 			c.JSON(400, gin.H{"error": err})
 			return

@@ -11,9 +11,10 @@ type List struct {
 }
 
 type Item struct {
-	Id        string `json:"id"`
-	Text      string `json:"text"`
-	Completed bool   `json:"completed"`
-	Author    string `json:"author"`
-	CreatedAt string `json:"created_at"`
+	Id        string  `json:"id"`
+	Text      string  `json:"text"`
+	Completed bool    `json:"completed"`
+	Author    string  `json:"author"`
+	CreatedAt string  `json:"created_at"`
+	DueAt     *string `json:"due_at"`
 }

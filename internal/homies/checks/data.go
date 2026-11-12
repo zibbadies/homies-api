@@ -11,6 +11,8 @@ var CheckersData map[string]models.Checker;
 
 var colorRegex = regexp.MustCompile(`^([A-Fa-f0-9]{6})$`)
 
+var rfc3339Regex = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$`)
+
 func init() {
 	fmt.Println("Initializing checks...")
 	CheckersData = make(map[string]models.Checker);
@@ -53,6 +55,16 @@ func init() {
 			MaxLength: 512,
 		},
 		Checker: BasicStringCheck("list_item_text"),
+	}
+
+	// List Item due date (RFC3339)
+	CheckersData["list_item_due"] = models.Checker{
+		Check: models.Check{
+			FriendlyName: "due date",
+			MinLength: 20,
+			MaxLength: 35,
+		},
+		Checker: BasicRegexCheck("list_item_due", rfc3339Regex),
 	}
 
 	// Avatar Color
