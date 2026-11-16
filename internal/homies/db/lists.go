@@ -72,8 +72,8 @@ func GetListHID(listId string) (string, error) {
 	}
 }
 
-func GetItems(listId string, from time.Time, to time.Time, limit int) ([]models.Item, error) {
-	items, err := execers.GetItemsEx(db, listId, from, to, limit)
+func GetItems(listId string, from time.Time, to time.Time, dueOn time.Time, limit int) ([]models.Item, error) {
+	items, err := execers.GetItemsEx(db, listId, from, to, dueOn, limit)
 	if err == nil {
 		return items, nil
 	}
@@ -85,6 +85,24 @@ func GetItems(listId string, from time.Time, to time.Time, limit int) ([]models.
 	}
 
 	return []models.Item{}, &models.DBError{
+		Message:   "General error, please try again later!",
+		ErrorCode: models.InternalError,
+	}
+}
+
+func GetDueDays(houseId string, from time.Time, to time.Time) ([]models.DueDay, error) {
+	days, err := execers.GetDueDaysEx(db, houseId, from, to)
+	if err == nil {
+		return days, nil
+	}
+
+	if pqErr, ok := err.(*pq.Error); ok {
+		logger.Logger.Error("due days get error", "err", err.Error(), "sql_err", pqErr.Code)
+	} else {
+		logger.Logger.Error("due days get error", "err", err.Error())
+	}
+
+	return []models.DueDay{}, &models.DBError{
 		Message:   "General error, please try again later!",
 		ErrorCode: models.InternalError,
 	}

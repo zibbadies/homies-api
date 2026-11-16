@@ -23,6 +23,7 @@ type ItemsFilter struct {
 	Limit int    `form:"limit"`
 	From  string `form:"from"`
 	To    string `form:"to"`
+	DueOn string `form:"due_on"`
 }
 
 // Parses the optional "due_at" field of an ItemInput.
@@ -193,9 +194,15 @@ func getItems(c *gin.Context) {
 		tot = models.NoTime
 	}
 
-	fmt.Println("TIME FILTERING: ", fromt, tot)
+	// due_on=YYYY-MM-DD filters items whose due_at falls in that UTC day
+	dueOn, err := time.Parse("2006-01-02", filter.DueOn)
+	if err != nil {
+		dueOn = models.NoTime
+	}
 
-	items, err := db.GetItems(id_param, fromt, tot, filter.Limit)
+	fmt.Println("TIME FILTERING: ", fromt, tot, dueOn)
+
+	items, err := db.GetItems(id_param, fromt, tot, dueOn, filter.Limit)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err})
 		return
@@ -323,4 +330,37 @@ func deleteItem(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{})
+}
+
+
+// GET /user/:id/due-days?from=YYYY-MM-DD&to=YYYY-MM-DD
+// Calendar preview: UTC days that have due tasks in the house's "todo" list,
+// with total/open counts. Bounds are optional, "to" is exclusive.
+// The :id param is ignored, the house is taken from the JWT (same as homeOverview).
+func dueDays(c *gin.Context) {
+	jwtdata, _ := c.Get("data")
+
+	user, err := db.GetUserMe(jwtdata.(jwt.MapClaims)["uid"].(string))
+	if (err != nil) {
+		c.JSON(400, gin.H{"error": err})
+		return
+	}
+
+	from, err := time.Parse("2006-01-02", c.Query("from"))
+	if (err != nil) {
+		from = models.NoTime
+	}
+
+	to, err := time.Parse("2006-01-02", c.Query("to"))
+	if (err != nil) {
+		to = models.NoTime
+	}
+
+	days, err := db.GetDueDays(user.HouseId, from, to)
+	if (err != nil) {
+		c.JSON(400, gin.H{"error": err})
+		return
+	}
+
+	c.JSON(200, gin.H{"days": days})
 }

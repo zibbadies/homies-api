@@ -73,12 +73,6 @@ func NewHouseEx(exec *sql.DB, name string, owner string) (string, string, error)
 
 	houseIdStr := strconv.FormatInt(houseId, 10)
 
-	err = NewListEx(tx, houseIdStr, "shopping", true);
-	if err != nil {
-		logger.Logger.Error("shopping list insert error", "err", err.Error())
-		return "", "", err
-	}
-
 	err = NewListEx(tx, houseIdStr, "todo", true);
 	if err != nil {
 		logger.Logger.Error("todo list insert error", "err", err.Error())

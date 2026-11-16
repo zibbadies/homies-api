@@ -56,6 +56,8 @@ CREATE INDEX house_id_index ON lists (house_id);
 
 CREATE INDEX list_id_index ON todos (list_id);
 
+CREATE INDEX due_at_index ON todos (due_at);
+
 ALTER TABLE users ADD CONSTRAINT link_user_house FOREIGN KEY (house) REFERENCES houses(id) ON DELETE SET NULL ON UPDATE CASCADE;
 
 ALTER TABLE lists ADD CONSTRAINT link_list_house FOREIGN KEY (house_id) REFERENCES houses(id) ON DELETE CASCADE;

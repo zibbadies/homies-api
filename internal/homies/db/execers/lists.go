@@ -76,7 +76,7 @@ func GetListHIDEx(exec Execer, listId string) (string, error) {
 	return strconv.FormatInt(houseId, 10), nil;
 }
 
-func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, limit int) ([]models.Item, error) {
+func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, dueOn time.Time, limit int) ([]models.Item, error) {
 	b_id, err := strconv.Atoi(listId)
 	if (err != nil) { 
 		logger.Logger.Error("list ID atoi error", "err", err.Error(), "listId", listId)
@@ -104,6 +104,13 @@ func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, limit 
 		query += fmt.Sprintf(" AND created_at < $%d", argsNum)
 		args = append(args, to.UTC())
 		argsNum++
+	}
+
+	if !dueOn.IsZero() {
+		dueOn = dueOn.UTC()
+		query += fmt.Sprintf(" AND due_at >= $%d AND due_at < $%d", argsNum, argsNum+1)
+		args = append(args, dueOn, dueOn.Add(24*time.Hour))
+		argsNum += 2
 	}
 
 	query += ` ORDER BY created_at DESC`
@@ -149,6 +156,71 @@ func GetItemsEx(exec Execer, listId string, from time.Time, to time.Time, limit 
 	}
 
 	return items, nil;
+}
+
+// Returns the UTC days (in [from, to), bounds optional) that have due tasks
+// in the house's "todo" list, with total and open (not completed) counts.
+func GetDueDaysEx(exec Execer, houseId string, from time.Time, to time.Time) ([]models.DueDay, error) {
+	houseIdInt, err := strconv.Atoi(houseId)
+	if (err != nil) {
+		logger.Logger.Error("house ID atoi error", "err", err.Error(), "houseId", houseId)
+		return nil, err
+	}
+
+	args := []any{houseIdInt}
+	argsNum := 2
+
+	query := `
+		SELECT (t.due_at AT TIME ZONE 'UTC')::date AS day,
+		       COUNT(*) AS total,
+		       COUNT(*) FILTER (WHERE NOT t.completed) AS open
+		FROM todos t
+		JOIN lists l ON t.list_id = l.id
+		WHERE l.house_id = $1 AND l.name = 'todo' AND t.due_at IS NOT NULL
+	`
+
+	if !from.IsZero() {
+		query += fmt.Sprintf(" AND t.due_at >= $%d", argsNum)
+		args = append(args, from.UTC())
+		argsNum++
+	}
+
+	if !to.IsZero() {
+		query += fmt.Sprintf(" AND t.due_at < $%d", argsNum)
+		args = append(args, to.UTC())
+		argsNum++
+	}
+
+	query += ` GROUP BY day ORDER BY day`
+
+	rows, err := exec.Query(query, args...)
+	defer rows.Close()
+
+	if err != nil {
+		logger.Logger.Error("due days select error", "err", err.Error(), "houseId", houseId)
+		return nil, err
+	}
+
+	days := make([]models.DueDay, 0);
+	for rows.Next() {
+		var day time.Time;
+		var dueDay models.DueDay;
+
+		if err := rows.Scan(&day, &dueDay.Total, &dueDay.Open); err != nil {
+			logger.Logger.Error("due days row scan error", "err", err.Error(), "houseId", houseId)
+			return nil, err
+		}
+
+		dueDay.Date = day.Format("2006-01-02");
+		days = append(days, dueDay)
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.Logger.Error("due days rows error", "err", err.Error(), "houseId", houseId)
+		return nil, err
+	}
+
+	return days, nil;
 }
 
 
